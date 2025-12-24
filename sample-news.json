@@ -35,7 +35,6 @@
                     "ticker_sentiment_label": "Neutral"
                 }
             ]
-        },
-        ...
+        }
     ]
 }

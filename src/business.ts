@@ -80,7 +80,7 @@ export async function getKey(): Promise<string> {
   const key = apiKeys[currentKeyIndex];
   currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
 
-  return key;
+  return key as string;
 }
 
 /**
