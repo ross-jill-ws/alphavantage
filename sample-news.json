@@ -1,0 +1,41 @@
+{
+    "items": "1000",
+    "sentiment_score_definition": "x <= -0.35: Bearish; -0.35 < x <= -0.15: Somewhat-Bearish; -0.15 < x < 0.15: Neutral; 0.15 <= x < 0.35: Somewhat_Bullish; x >= 0.35: Bullish",
+    "relevance_score_definition": "0 < x <= 1, with a higher score indicating higher relevance.",
+    "feed": [
+        {
+            "title": "(MXI) Price Dynamics and Execution-Aware Positioning",
+            "url": "https://news.stocktradersdaily.com/news_release/101/MXI_Price_Dynamics_and_Execution-Aware_Positioning_122225120005_1766379605.html",
+            "time_published": "20251222T000000",
+            "authors": [
+                "Jeff and Andy"
+            ],
+            "summary": "Ishares Global Materials Etf (NYSE: MXI) is currently showing neutral sentiment in the near and mid-term, with a positive long-term bias that could moderate. The stock is testing resistance with an exceptional 10.8:1 risk-reward short setup targeting 3.1% downside. Three distinct AI-generated trading strategies (Position Trading, Momentum Breakout, and Risk Hedging) are provided for different risk profiles.",
+            "banner_image": "https://news.stocktradersdaily.com/media/691336_MXI_graph.jpg",
+            "source": "Stock Traders Daily",
+            "category_within_source": "General",
+            "source_domain": "Stock Traders Daily",
+            "topics": [
+                {
+                    "topic": "financial_markets",
+                    "relevance_score": "0.910652"
+                },
+                {
+                    "topic": "economy_macro",
+                    "relevance_score": "0.617476"
+                }
+            ],
+            "overall_sentiment_score": 0.045162,
+            "overall_sentiment_label": "Neutral",
+            "ticker_sentiment": [
+                {
+                    "ticker": "MXI",
+                    "relevance_score": "1.000000",
+                    "ticker_sentiment_score": "0.035610",
+                    "ticker_sentiment_label": "Neutral"
+                }
+            ]
+        },
+        ...
+    ]
+}
