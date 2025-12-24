@@ -104,14 +104,48 @@ export async function removeCollection(db: string, collection: string): Promise<
  * @param collection Collection name
  * @returns Array of documents
  */
-export async function listDocuments<T = Document>(db: string, collection: string): Promise<T[]> {
+export async function listDocuments<T extends Document = Document>(db: string, collection: string): Promise<T[]> {
   if (!globalClient) {
     throw new Error("Not connected to MongoDB. Call connect() first.");
   }
 
   const database = globalClient.db(db);
   const col = database.collection<T>(collection);
-  return await col.find({}).toArray();
+  return await col.find({}).toArray() as T[];
+}
+
+/**
+ * Queries documents matching the filter with optional sorting and limit
+ * @param db Database name
+ * @param collection Collection name
+ * @param filter Query filter object
+ * @param options Optional sort and limit parameters
+ * @returns Array of matching documents
+ */
+export async function findDocuments<T = Document>(
+  db: string,
+  collection: string,
+  filter: Record<string, any>,
+  options?: { sort?: Record<string, 1 | -1>; limit?: number }
+): Promise<T[]> {
+  if (!globalClient) {
+    throw new Error("Not connected to MongoDB. Call connect() first.");
+  }
+
+  const database = globalClient.db(db);
+  const col = database.collection(collection);
+
+  let cursor = col.find(filter);
+
+  if (options?.sort) {
+    cursor = cursor.sort(options.sort);
+  }
+
+  if (options?.limit) {
+    cursor = cursor.limit(options.limit);
+  }
+
+  return await cursor.toArray() as T[];
 }
 
 /**
@@ -121,7 +155,7 @@ export async function listDocuments<T = Document>(db: string, collection: string
  * @param doc Document to insert
  * @returns The inserted document's _id as a string
  */
-export async function createDocument<T = Document>(db: string, collection: string, doc: T): Promise<string> {
+export async function createDocument<T extends Document = Document>(db: string, collection: string, doc: T): Promise<string> {
   if (!globalClient) {
     throw new Error("Not connected to MongoDB. Call connect() first.");
   }
@@ -141,7 +175,7 @@ export async function createDocument<T = Document>(db: string, collection: strin
  * @param doc Partial document with fields to update
  * @returns true if a document was modified, false otherwise
  */
-export async function updateDocument<T = Partial<Document>>(
+export async function updateDocument<T extends Partial<Document> = Partial<Document>>(
   db: string,
   collection: string,
   id: string,
