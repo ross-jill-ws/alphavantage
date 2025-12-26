@@ -23,46 +23,10 @@ src/
 ### Dependencies
 
 This module depends on:
-- `src/mongo.ts` - MongoDB CRUD operations
+- `src/mongo.ts` - MongoDB CRUD operations (uses `connect`, `disconnect`, `findDocuments`)
 - `src/business.ts` - Alpha Vantage API functions (`pullStock`, `pullNews`)
 
-**IMPORTANT**: You must add a new function `findDocuments` to `src/mongo.ts` (see below).
-
-### Required Addition to `src/mongo.ts`
-
-Add the following function to `src/mongo.ts`:
-
-**`findDocuments<T = Document>(db: string, collection: string, filter: Record<string, any>, options?: { sort?: Record<string, 1 | -1>; limit?: number }): Promise<T[]>`**
-- Queries documents matching the filter with optional sorting and limit
-- Returns: Array of matching documents
-- Implementation:
-```typescript
-export async function findDocuments<T = Document>(
-  db: string,
-  collection: string,
-  filter: Record<string, any>,
-  options?: { sort?: Record<string, 1 | -1>; limit?: number }
-): Promise<T[]> {
-  if (!globalClient) {
-    throw new Error("Not connected to MongoDB. Call connect() first.");
-  }
-
-  const database = globalClient.db(db);
-  const col = database.collection(collection);
-
-  let cursor = col.find(filter);
-
-  if (options?.sort) {
-    cursor = cursor.sort(options.sort);
-  }
-
-  if (options?.limit) {
-    cursor = cursor.limit(options.limit);
-  }
-
-  return await cursor.toArray() as T[];
-}
-```
+**Note**: The `findDocuments` function should already be available in `src/mongo.ts` from the `/01-mongo-crud` command.
 
 ### Install yargs
 

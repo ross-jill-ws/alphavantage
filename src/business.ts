@@ -1,4 +1,12 @@
 import { upsertDocument } from "./mongo";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get the directory of this source file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Project root is one level up from src/
+const PROJECT_ROOT = path.resolve(__dirname, "..");
 
 // ============================================================================
 // Types
@@ -58,7 +66,9 @@ export async function getKey(): Promise<string> {
   // Load keys from file if not already loaded
   if (apiKeys.length === 0) {
     try {
-      const file = Bun.file(".keylist");
+      // Use absolute path to .keylist file in project root
+      const keylistPath = path.join(PROJECT_ROOT, ".keylist");
+      const file = Bun.file(keylistPath);
       const content = await file.text();
       apiKeys = content
         .split("\n")

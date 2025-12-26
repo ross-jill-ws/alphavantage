@@ -46,15 +46,24 @@ bun src/mcp.ts --sse --port 8080
 
 ### 1. get_stock_prices
 
-Query stock price data from MongoDB for a given stock symbol.
+Query stock price data from MongoDB for a given stock symbol. **Automatically pulls data from Alpha Vantage API if not found.**
 
 **Parameters:**
 - `symbol` (string, required) - Stock ticker symbol (e.g., "AAPL", "IBM", "MSFT", "GOOGL")
 - `date` (string, optional) - Specific date in YYYYMMDD format (e.g., "20251223")
 
 **Behavior:**
+- First queries MongoDB for the requested stock data
+- **If not found:** Automatically calls Alpha Vantage API to pull the data, then queries again
 - If `date` is provided: Returns stock data for that specific date
 - If `date` is omitted: Returns the latest 100 stock prices sorted by date descending
+- Response message indicates if data was "freshly pulled from API"
+
+**Auto-Pull Feature:**
+This tool intelligently handles missing data by automatically fetching it from the Alpha Vantage API. This means you can query any valid stock symbol without having to manually pull the data first. The tool will:
+1. Check if the data exists in MongoDB
+2. If not found, pull from Alpha Vantage API (respects rate limits with 5-second delay)
+3. Query MongoDB again and return the freshly pulled data
 
 **Example Request (stdio):**
 ```json
@@ -72,7 +81,7 @@ Query stock price data from MongoDB for a given stock symbol.
 }
 ```
 
-**Example Response:**
+**Example Response (data already in MongoDB):**
 ```json
 {
   "message": "Stock data for AAPL on 2025-12-23",
@@ -84,6 +93,22 @@ Query stock price data from MongoDB for a given stock symbol.
     "low": 269.56,
     "close": 272.36,
     "volume": 29641999
+  }
+}
+```
+
+**Example Response (auto-pulled from API):**
+```json
+{
+  "message": "Stock data for MSFT on 2025-12-23 (freshly pulled from API)",
+  "data": {
+    "symbol": "MSFT",
+    "date": "2025-12-23",
+    "open": 442.91,
+    "high": 445.67,
+    "low": 441.23,
+    "close": 444.85,
+    "volume": 18234567
   }
 }
 ```
@@ -188,11 +213,33 @@ echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "get_news", 
 
 ## Environment Variables
 
-The server requires the `MONGODB_CONNECTION_STRING` environment variable to be set. This should be configured in your `.env` file:
+The server requires the following environment variables:
 
+**Required:**
+- `MONGODB_CONNECTION_STRING` - MongoDB connection string
+
+**For Auto-Pull Feature (Optional):**
+- A `.keylist` file in the project root containing Alpha Vantage API keys (one per line)
+
+The `.keylist` file is used for the auto-pull feature. Keys are rotated in round-robin fashion.
+
+**📖 See [SETUP-KEYLIST.md](SETUP-KEYLIST.md) for detailed setup instructions.**
+
+Example `.env` file:
 ```bash
 MONGODB_CONNECTION_STRING=mongodb://localhost:27017
 ```
+
+Example `.keylist` file:
+```
+YOUR_ALPHA_VANTAGE_API_KEY_1
+YOUR_ALPHA_VANTAGE_API_KEY_2
+```
+
+**Note:**
+- The auto-pull feature respects Alpha Vantage API rate limits by waiting 5 seconds after each API call
+- If `.keylist` is not found, the server will still work for querying existing data, but auto-pull will fail with a helpful error message
+- You can manually pull data using: `bun src/run-stocks.ts --pull-stock SYMBOL`
 
 ## Data Schema
 

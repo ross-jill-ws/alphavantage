@@ -31,7 +31,7 @@ HTTP-based with Express, allowing:
 
 ### 1. `get_stock_prices`
 
-**Purpose:** Query stock price data from MongoDB for a given stock symbol.
+**Purpose:** Query stock price data from MongoDB for a given stock symbol. **Automatically pulls data from Alpha Vantage API if not found.**
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -40,9 +40,11 @@ HTTP-based with Express, allowing:
 | `date` | string | No | Specific date in YYYYMMDD format. If omitted, returns the latest 100 prices. |
 
 **Behavior:**
-- Queries the `stock-{symbol}` collection in the `finance` database
+- First queries the `stock-{symbol}` collection in the `finance` database
+- **If not found:** Automatically calls `pullStock(symbol)` to fetch from Alpha Vantage API, then queries again
 - If `date` is provided: Returns the stock data for that specific date
 - If `date` is omitted: Returns the latest 100 stock prices sorted by date descending
+- Response message indicates if data was "freshly pulled from API"
 
 **Example Input:**
 ```json
@@ -82,7 +84,7 @@ interface StockData {
 ```typescript
 {
   name: "get_stock_prices",
-  description: "Query stock price data from MongoDB for a given stock symbol. Returns daily OHLCV (Open, High, Low, Close, Volume) data. If a specific date is provided, returns data for that date only. Otherwise, returns the latest 100 trading days sorted by date descending. Example response: {\"symbol\": \"AAPL\", \"date\": \"2025-12-23\", \"open\": 270.97, \"high\": 272.45, \"low\": 269.56, \"close\": 272.36, \"volume\": 29360026}",
+  description: "Query stock price data from MongoDB for a given stock symbol. Returns daily OHLCV (Open, High, Low, Close, Volume) data. If the data is not found in MongoDB, it will automatically pull it from the Alpha Vantage API first. If a specific date is provided, returns data for that date only. Otherwise, returns the latest 100 trading days sorted by date descending. Example response: {\"symbol\": \"AAPL\", \"date\": \"2025-12-23\", \"open\": 270.97, \"high\": 272.45, \"low\": 269.56, \"close\": 272.36, \"volume\": 29360026}",
   inputSchema: {
     type: "object",
     properties: {
@@ -260,6 +262,14 @@ The following packages are needed (should already be installed):
 - `express` - For SSE transport
 - `mongodb` - MongoDB driver
 
+### Required Imports
+
+```typescript
+import { connect, disconnect, findDocuments } from "./mongo";
+import type { StockData, NewsItem } from "./business";
+import { pullStock } from "./business";  // CRITICAL: For auto-pull feature
+```
+
 ### Key Implementation Points
 
 1. **Connection Management:**
@@ -267,18 +277,116 @@ The following packages are needed (should already be installed):
    - Use the existing `connect()` and `findDocuments()` functions from `./mongo.ts`
    - Handle graceful shutdown on SIGINT
 
-2. **Date Format Conversion:**
+2. **Auto-Pull Feature (CRITICAL):**
+   - Import `pullStock` from `./business.ts`
+   - When stock data is not found in MongoDB, automatically call `pullStock(symbol)`
+   - After pulling, query MongoDB again to get the freshly pulled data
+   - Include "(freshly pulled from API)" in the response message to indicate auto-pull occurred
+   - **Error Handling for Auto-Pull:**
+     - Wrap `pullStock()` calls in try-catch blocks
+     - Check for `.keylist` errors specifically (error message includes '.keylist' or 'ENOENT')
+     - Return helpful error messages with actionable guidance
+     - Include alternative manual pull command in error message
+
+3. **Date Format Conversion:**
    - `get_stock_prices`: Convert YYYYMMDD → YYYY-MM-DD for MongoDB queries
    - `get_news`: Convert YYYYMMDD → YYYYMMDDT0000/T2359 for time_published queries
 
-3. **Error Handling:**
+4. **Error Handling:**
    - Return descriptive error messages for invalid parameters
    - Handle MongoDB connection errors gracefully
    - Validate date formats before querying
+   - **Auto-Pull Errors:** Provide helpful messages when `.keylist` is missing or API fails
 
-4. **Tool Response Format:**
+5. **Tool Response Format:**
    - Return JSON stringified results for tool responses
    - Include count information where applicable (e.g., "Found X news articles")
+   - Include "(freshly pulled from API)" indicator when auto-pull occurs
+
+### Auto-Pull Implementation Example
+
+The `processGetStockPrices` method should implement auto-pull as follows:
+
+```typescript
+private async processGetStockPrices(symbol: string, date?: string): Promise<any> {
+  const collectionName = `stock-${symbol}`;
+
+  if (date) {
+    // Query specific date
+    const dateFormatted = formatStockDate(date);
+    let docs = await findDocuments<StockData>("finance", collectionName, { date: dateFormatted });
+
+    // If not found, pull from API and try again
+    if (docs.length === 0) {
+      try {
+        console.error(`Stock data not found for ${symbol}, pulling from Alpha Vantage API...`);
+        const count = await pullStock(symbol);
+        console.error(`Pulled ${count} records for ${symbol}`);
+
+        // Query again after pulling
+        docs = await findDocuments<StockData>("finance", collectionName, { date: dateFormatted });
+
+        if (docs.length === 0) {
+          return {
+            message: `No stock data found for ${symbol} on ${dateFormatted} (even after pulling from API)`,
+            data: null
+          };
+        }
+
+        return {
+          message: `Stock data for ${symbol} on ${dateFormatted} (freshly pulled from API)`,
+          data: docs[0]
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Check if it's a .keylist error
+        if (errorMessage.includes('.keylist') || errorMessage.includes('ENOENT')) {
+          return {
+            message: `No stock data found for ${symbol}. Auto-pull failed: .keylist file not found. Please create a .keylist file with your Alpha Vantage API key(s), or manually pull the data using: bun src/run-stocks.ts --pull-stock ${symbol}`,
+            data: null,
+            error: "Missing .keylist file"
+          };
+        }
+
+        // Other errors
+        return {
+          message: `No stock data found for ${symbol}. Auto-pull failed: ${errorMessage}`,
+          data: null,
+          error: errorMessage
+        };
+      }
+    }
+
+    return {
+      message: `Stock data for ${symbol} on ${dateFormatted}`,
+      data: docs[0]
+    };
+  } else {
+    // Similar logic for querying latest 100 prices
+    // ... (implement same pattern with auto-pull and error handling)
+  }
+}
+```
+
+### .keylist File Requirement
+
+The auto-pull feature requires a `.keylist` file in the project root containing Alpha Vantage API key(s):
+
+**File location:** `<project-root>/.keylist`
+
+**Format:** One API key per line
+```
+YOUR_API_KEY_1
+YOUR_API_KEY_2
+```
+
+**Setup instructions:** See [SETUP-KEYLIST.md](../SETUP-KEYLIST.md) for detailed setup guide.
+
+**Graceful degradation:** If `.keylist` is missing:
+- Auto-pull will fail with a helpful error message
+- Manual pull alternative is provided in error message
+- Server continues to work for querying existing data
 
 ### Command-Line Arguments
 ```

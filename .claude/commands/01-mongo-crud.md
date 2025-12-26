@@ -58,6 +58,14 @@ Use `MONGODB_CONNECTION_STRING` environment variable from `.env` file for MongoD
 - Retrieves all documents from a collection
 - Generic type `T` allows for typed document results
 
+**`findDocuments<T = Document>(db: string, collection: string, filter: Record<string, any>, options?: { sort?: Record<string, 1 | -1>; limit?: number }): Promise<T[]>`**
+- Queries documents matching the filter with optional sorting and limit
+- `filter`: MongoDB query filter object (e.g., `{ date: "2025-12-23" }`)
+- `options.sort`: Sort order object (e.g., `{ date: -1 }` for descending)
+- `options.limit`: Maximum number of documents to return
+- Returns: Array of matching documents
+- This is a more flexible alternative to `listDocuments` that supports filtering and sorting
+
 **`createDocument<T = Document>(db: string, collection: string, doc: T): Promise<string>`**
 - Inserts a new document into the collection
 - Returns: The inserted document's `_id` as a string
@@ -108,6 +116,8 @@ import { test, expect, beforeAll, afterAll, describe } from "bun:test";
 **Document Tests**
 - `test("should create a document")` - Create document with `{ name: "Test", value: 42, extra: "data" }` and verify ID is returned
 - `test("should list documents")` - Verify created document exists in listing
+- `test("should find documents with filter")` - Use findDocuments with filter `{ name: "Test" }` and verify it returns the document
+- `test("should find documents with sort and limit")` - Create multiple documents and use findDocuments with sort and limit options
 - `test("should update a document incrementally")` - Update with `{ value: 100 }` and verify success
 - `test("should verify incremental update preserves other fields")` - Verify that after update, `name` and `extra` fields are still present and unchanged
 - `test("should delete a document")` - Delete document and verify it no longer exists
@@ -136,6 +146,12 @@ try {
 
   // List all documents
   const users = await listDocuments("mydb", "users");
+
+  // Find documents with filter and options
+  const olderUsers = await findDocuments("mydb", "users",
+    { age: { $gte: 30 } },
+    { sort: { age: -1 }, limit: 10 }
+  );
 
   // Delete
   await deleteDocument("mydb", "users", userId);

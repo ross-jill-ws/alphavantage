@@ -68,7 +68,26 @@ PW93XDXYXRRM89K9
 ...
 ```
 
+**Important:** The `.keylist` file must be located in the **project root** directory.
+
 ### API Specification for `src/business.ts`
+
+#### Path Resolution (CRITICAL)
+
+Add path resolution at the top of `src/business.ts` to correctly locate `.keylist` file regardless of working directory:
+
+```typescript
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get the directory of this source file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Project root is one level up from src/
+const PROJECT_ROOT = path.resolve(__dirname, "..");
+```
+
+This ensures `.keylist` is always found at the project root, even when the code is executed from different directories.
 
 #### Types
 
@@ -117,12 +136,13 @@ interface NewsItem {
 #### Key Management
 
 **`getKey(): Promise<string>`**
-- Reads API keys from `.keylist` file (one key per line)
+- Reads API keys from `.keylist` file in project root (using `PROJECT_ROOT` constant)
 - Implements **Round-Robin Rotation** to get the next key in sequence
 - Maintains internal state to track the current key index
 - After each key is returned, the index advances to the next key
 - When the last key is reached, wraps around to the first key
 - Filters out empty lines from the keylist
+- Uses absolute path: `path.join(PROJECT_ROOT, ".keylist")`
 - Throws error if `.keylist` file is not found or empty
 
 **`waitAfterApiCall(): Promise<void>`**
