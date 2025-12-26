@@ -4,7 +4,11 @@ A Model Context Protocol (MCP) server that provides access to Alpha Vantage stoc
 
 ## 📺 Video Tutorial
 
-Watch the complete tutorial on YouTube: [Building MCP Servers with Bun](https://youtu.be/Nmu5DLqAwPg)
+Watch the complete tutorial on YouTube:
+
+[![Building MCP Servers with Bun](https://img.youtube.com/vi/Nmu5DLqAwPg/maxresdefault.jpg)](https://youtu.be/Nmu5DLqAwPg)
+
+**[▶️ Building MCP Servers with Bun](https://youtu.be/Nmu5DLqAwPg)**
 
 ## 🎯 What This Project Does
 
