@@ -97,10 +97,23 @@ cd alphavantage
 bun install
 
 # Set up environment variables
-echo "MONGODB_CONNECTION_STRING=mongodb://localhost:27017" > .env
+cp .env.example .env
+# Edit .env and add your MongoDB connection string
+# Example: MONGODB_CONNECTION_STRING=mongodb://localhost:27017
 
 # Set up API keys for auto-pull feature
-echo "YOUR_ALPHA_VANTAGE_API_KEY" > .keylist
+cp .keylist.example .keylist
+# Then add your Alpha Vantage API keys to .keylist (one per line)
+```
+
+**Getting API Keys:**
+
+You can manually get API keys from [Alpha Vantage](https://www.alphavantage.co/support/#api-key), or use the automated slash command:
+
+```bash
+# Using Claude Code with the /00-get-keys slash command
+# This will automatically fetch multiple API keys and add them to .keylist
+/00-get-keys 5   # Gets 5 API keys
 ```
 
 See [SETUP-KEYLIST.md](SETUP-KEYLIST.md) for detailed `.keylist` setup instructions.
@@ -406,7 +419,13 @@ alphavantage/
 
 ### Environment Variables
 
-Create a `.env` file:
+Rename `.env.example` to `.env` and configure your MongoDB connection:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env`:
 
 ```bash
 MONGODB_CONNECTION_STRING=mongodb://localhost:27017
@@ -414,12 +433,26 @@ MONGODB_CONNECTION_STRING=mongodb://localhost:27017
 
 ### API Keys
 
-Create a `.keylist` file with your Alpha Vantage API keys (one per line):
+Rename `.keylist.example` to `.keylist` and add your Alpha Vantage API keys:
+
+```bash
+cp .keylist.example .keylist
+```
+
+Then add your API keys to `.keylist` (one per line):
 
 ```
 YOUR_API_KEY_1
 YOUR_API_KEY_2
 YOUR_API_KEY_3
+```
+
+**Automated Key Generation:**
+
+Use the `/00-get-keys` slash command to automatically fetch multiple API keys:
+
+```bash
+/00-get-keys 5   # Fetches 5 API keys and appends them to .keylist
 ```
 
 See [SETUP-KEYLIST.md](SETUP-KEYLIST.md) for detailed setup instructions.
